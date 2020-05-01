@@ -33,4 +33,4 @@ Liwei Huang, dr_huanglw@163.com
 # Citation
 If you use DAN-SNR in your research, please cite our paper:
 
-iwei Huang, Yutao Ma, Yanbo Liu, and Keqing He. DAN-SNR: A Deep Attentive Network for Social-Aware Next Point-of-Interest Recommendation. arXiv.org, arXiv: 2004.12161 (2020).
+Liwei Huang, Yutao Ma, Yanbo Liu, and Keqing He. DAN-SNR: A Deep Attentive Network for Social-Aware Next Point-of-Interest Recommendation. arXiv.org, arXiv: 2004.12161 (2020).
