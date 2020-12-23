@@ -31,6 +31,7 @@ network.csv: includes all friendships of all users (from usrID, to userID)
 Liwei Huang, dr_huanglw@163.com
 
 # Citation
-If you use DAN-SNR in your research, please cite our paper:
+This work has been published on <ACM transactions on Internet technology>. If you use DAN-SNR in your research, please cite our paper:
 
-Liwei Huang, Yutao Ma, Yanbo Liu, and Keqing He. DAN-SNR: A Deep Attentive Network for Social-Aware Next Point-of-Interest Recommendation. arXiv.org, arXiv: 2004.12161 (2020).
+Liwei Huang, Yutao Ma, Yanbo Liu, and Keqing He. 2020. DAN-SNR: A Deep Attentive Network for Socialaware Next Point-of-interest Recommendation. ACM Trans. Internet Technol. 21, 1, Article 2 (December 2020), 27 pages.
+https://doi.org/10.1145/3430504
