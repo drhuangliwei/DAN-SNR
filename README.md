@@ -33,5 +33,5 @@ Liwei Huang, dr_huanglw@163.com
 # Citation
 This work has been published on ACM transactions on Internet technology. If you use DAN-SNR in your research, please cite our paper:
 
-Liwei Huang, Yutao Ma, Yanbo Liu, and Keqing He. 2020. DAN-SNR: A Deep Attentive Network for Socialaware Next Point-of-interest Recommendation. ACM Trans. Internet Technol. 21, 1, Article 2 (December 2020), 27 pages.
+Liwei Huang, Yutao Ma, Yanbo Liu, and Keqing He. 2020. DAN-SNR: A Deep Attentive Network for Social aware Next Point-of-interest Recommendation. ACM Trans. Internet Technol. 21, 1, Article 2 (December 2020), 27 pages.
 https://doi.org/10.1145/3430504
