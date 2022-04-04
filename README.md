@@ -21,7 +21,7 @@ userlocation.csv：includes user ID, POI ID, latitude, longitude, checkin time.
 
 locations.csv: includes POI ID, latitude, longitude, city ID
 
-position_embedding.csv: includes the embeddings of all POIs  
+Location Embedding.csv: includes the embeddings of all locations of all POIs  
 
 user_embedding.csv: includes the embeddings of all users  
 
