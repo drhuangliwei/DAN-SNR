@@ -23,7 +23,7 @@ class Config(object):
     max_max_epoch = 20   
     batch_size = 50    
     user_size = 10000    #number of users  
-    position_size = 10000   #number of POIs
+    location_size = 10000   #number of POIs
     negative_sample_num = 500  #number of negative samples for each sample
     init_scale = 1.0  
     train_dir = '/train'
@@ -37,7 +37,7 @@ class attentive_Model:
         self.l_num_steps=Config.l_num_steps 
         self.hidden_size=Config.hidden_size
         self.user_size=Config.user_size
-        self.position_size=Config.position_size
+        self.location_size=Config.location_size
         self.negative_sample_num=Config.negative_sample_num
         self.train_dir=Config.train_dir
         self.global_steps = tf.Variable(0, name='global_step', trainable=False)
@@ -63,8 +63,8 @@ class attentive_Model:
         
         #user embeddings, which is pretrained on the location-based social network by node2vec
         self.user_vecs = tf.placeholder(tf.float32, shape=(self.user_size, self.hidden_size)) #表示所有用户的分布式表示
-        #POI embedding, which is pretrainedon the L2L graph by node2vec
-        self.position_vecs = tf.placeholder(tf.float32, shape=(self.position_size, self.hidden_size)) #表示所有位置的分布式表示
+        #POI location embedding, which is pretrainedon the L2L graph by node2vec
+        self.location_vecs = tf.placeholder(tf.float32, shape=(self.location_size, self.hidden_size)) #表示所有位置的分布式表示
         
         #Time embedding for each chechins in two channels and target POI 
         self.s_time_x = tf.placeholder(tf.int32, shape=(None, self.num_steps)) 
@@ -92,50 +92,50 @@ class attentive_Model:
             user_embedding_y=tf.expand_dims(user_embedding,1) #[batch_size,1,hidden_size]
             user_embedding_l=tf.nn.embedding_lookup(self.user_vecs,self.l_u) #[batch_size,l_num_steps,hidden_size]
             user_embedding_n=tf.tile(tf.expand_dims(user_embedding,1),[1, self.negative_sample_num, 1]) 
-            user_embedding_a=tf.tile(tf.expand_dims(user_embedding,1),[1, self.position_size, 1])
+            user_embedding_a=tf.tile(tf.expand_dims(user_embedding,1),[1, self.location_size, 1])
             
             #嵌入POI
-            poi_emb = tf.get_variable('poi_emb', dtype=tf.float32, shape=[self.position_size, self.hidden_size],initializer=tf.contrib.layers.xavier_initializer())
+            poi_emb = tf.get_variable('poi_emb', dtype=tf.float32, shape=[self.location_size, self.hidden_size],initializer=tf.contrib.layers.xavier_initializer())
             poi_embedding_x = tf.nn.embedding_lookup(poi_emb,self.s_x) #[batch_size,num_steps,hidden_size]
             poi_embedding_y = tf.expand_dims(tf.nn.embedding_lookup(poi_emb,self.y),1) #[batch_size,1,hidden_size]
             poi_embedding_l = tf.nn.embedding_lookup(poi_emb,self.l_x) #[batch_size,l_num_steps,hidden_size]
             poi_embedding_n = tf.nn.embedding_lookup(poi_emb,self.negative_sample) 
             poi_embedding_a = tf.tile(tf.expand_dims(poi_emb,0),[batch_size, 1, 1])
             
-            position_embedding_x=tf.nn.embedding_lookup(self.position_vecs,self.s_x) #[batch_size,num_steps,hidden_size]
-            position_embedding_y=tf.expand_dims(tf.nn.embedding_lookup(self.position_vecs,self.y),1) #[batch_size,1,hidden_size]
-            position_embedding_l=tf.nn.embedding_lookup(self.position_vecs,self.l_x) #[batch_size,l_num_steps,hidden_size]
-            position_embedding_n=tf.nn.embedding_lookup(self.position_vecs,self.negative_sample)
-            position_embedding_a = tf.tile(tf.expand_dims(self.position_vecs,0),[batch_size, 1, 1])
+            location_embedding_x=tf.nn.embedding_lookup(self.location_vecs,self.s_x) #[batch_size,num_steps,hidden_size]
+            location_embedding_y=tf.expand_dims(tf.nn.embedding_lookup(self.location_vecs,self.y),1) #[batch_size,1,hidden_size]
+            location_embedding_l=tf.nn.embedding_lookup(self.location_vecs,self.l_x) #[batch_size,l_num_steps,hidden_size]
+            location_embedding_n=tf.nn.embedding_lookup(self.location_vecs,self.negative_sample)
+            location_embedding_a = tf.tile(tf.expand_dims(self.location_vecs,0),[batch_size, 1, 1])
             
             time_emb = tf.get_variable('time_emb', dtype=tf.float32, shape=[20, self.hidden_size],initializer=tf.contrib.layers.xavier_initializer())
             time_embedding_x = tf.nn.embedding_lookup(time_emb,self.s_time_x) #[batch_size,num_steps,hidden_size]
             time_embedding_y = tf.expand_dims(tf.nn.embedding_lookup(time_emb,self.time_y),1) #[batch_size,1,hidden_size]
             time_embedding_l = tf.nn.embedding_lookup(time_emb,self.l_time_x) #[batch_size,l_num_steps,hidden_size]
             time_embedding_n = tf.tile(time_embedding_y, [1,self.negative_sample_num, 1])
-            time_embedding_a = tf.tile(time_embedding_y, [1,self.position_size, 1])
+            time_embedding_a = tf.tile(time_embedding_y, [1,self.location_size, 1])
             
             non_zeros=tf.stack([tf.range(batch_size),tf.reduce_sum(self.short_mask,-1)],axis=1)
-            location_embedding=tf.cast(positional_encoding(batch_size,self.num_steps+1,num_units=self.hidden_size,zero_pad=False,scale=False),dtype=tf.float32)
-            location_embedding_x=location_embedding[:,:-1,:]
-            location_embedding_y=tf.expand_dims(tf.gather_nd(location_embedding,non_zeros),1)
-            location_embedding_n = tf.tile(location_embedding_y, [1,self.negative_sample_num, 1])            
-            location_embedding_a = tf.tile(location_embedding_y, [1,self.position_size, 1])
+            position_embedding=tf.cast(positional_encoding(batch_size,self.num_steps+1,num_units=self.hidden_size,zero_pad=False,scale=False),dtype=tf.float32)
+            position_embedding_x=position_embedding[:,:-1,:]
+            position_embedding_y=tf.expand_dims(tf.gather_nd(position_embedding,non_zeros),1)
+            position_embedding_n = tf.tile(position_embedding_y, [1,self.negative_sample_num, 1])            
+            position_embedding_a = tf.tile(position_embedding_y, [1,self.location_size, 1])
 
             W_U = tf.tile(tf.expand_dims(tf.get_variable("W_U", [self.hidden_size, self.hidden_size], dtype=tf.float32),0),[batch_size,1,1])  #用户输入的权值
             W_X = tf.tile(tf.expand_dims(tf.get_variable("W_X", [self.hidden_size, self.hidden_size], dtype=tf.float32),0),[batch_size,1,1])  #POI输入的权值
-            W_P = tf.tile(tf.expand_dims(tf.get_variable("W_P", [self.hidden_size, self.hidden_size], dtype=tf.float32),0),[batch_size,1,1])  #位置输入的权值
+            W_l = tf.tile(tf.expand_dims(tf.get_variable("W_l", [self.hidden_size, self.hidden_size], dtype=tf.float32),0),[batch_size,1,1])  #位置输入的权值
             W_T = tf.tile(tf.expand_dims(tf.get_variable("W_T", [self.hidden_size, self.hidden_size], dtype=tf.float32),0),[batch_size,1,1])  #时间输入的权值
-            W_l = tf.tile(tf.expand_dims(tf.get_variable("W_l", [self.hidden_size, self.hidden_size], dtype=tf.float32),0),[batch_size,1,1])  #序列输入的权值
+            W_p = tf.tile(tf.expand_dims(tf.get_variable("W_p", [self.hidden_size, self.hidden_size], dtype=tf.float32),0),[batch_size,1,1])  #序列输入的权值
                                                          
-            x_embedding=tf.matmul(user_embedding_x ,W_U)+tf.matmul(poi_embedding_x ,W_X)+tf.matmul(position_embedding_x ,W_P)+tf.matmul(time_embedding_x ,W_T)+tf.matmul(location_embedding_x ,W_l) #[batch_size,num_steps,hidden_size]
-            y_embedding=tf.matmul(user_embedding_y ,W_U)+tf.matmul(poi_embedding_y ,W_X)+tf.matmul(position_embedding_y ,W_P)+tf.matmul(time_embedding_y ,W_T)+tf.matmul(location_embedding_y ,W_l) #[batch_size,1,hidden_size]
-            yl_embedding=tf.matmul(user_embedding_y ,W_U)+tf.matmul(poi_embedding_y ,W_X)+tf.matmul(position_embedding_y ,W_P)+tf.matmul(time_embedding_y ,W_T)
-            l_embedding=tf.matmul(user_embedding_l ,W_U)+tf.matmul(poi_embedding_l ,W_X)+tf.matmul(position_embedding_l ,W_P)+tf.matmul(time_embedding_l ,W_T) #[batch_size,l_num_steps,hidden_size]
-            n_embedding=tf.matmul(user_embedding_n ,W_U)+tf.matmul(poi_embedding_n ,W_X)+tf.matmul(position_embedding_n ,W_P)+tf.matmul(time_embedding_n ,W_T)+tf.matmul(location_embedding_n ,W_l)
-            nl_embedding=tf.matmul(user_embedding_n ,W_U)+tf.matmul(poi_embedding_n ,W_X)+tf.matmul(position_embedding_n ,W_P)+tf.matmul(time_embedding_n ,W_T)
-            a_embedding=tf.matmul(user_embedding_a ,W_U)+tf.matmul(poi_embedding_a ,W_X)+tf.matmul(position_embedding_a ,W_P)+tf.matmul(time_embedding_a ,W_T)+tf.matmul(location_embedding_a ,W_l)
-            al_embedding=tf.matmul(user_embedding_a ,W_U)+tf.matmul(poi_embedding_a ,W_X)+tf.matmul(position_embedding_a ,W_P)+tf.matmul(time_embedding_a ,W_T)
+            x_embedding=tf.matmul(user_embedding_x ,W_U)+tf.matmul(poi_embedding_x ,W_X)+tf.matmul(location_embedding_x ,W_l)+tf.matmul(time_embedding_x ,W_T)+tf.matmul(position_embedding_x ,W_p) #[batch_size,num_steps,hidden_size]
+            y_embedding=tf.matmul(user_embedding_y ,W_U)+tf.matmul(poi_embedding_y ,W_X)+tf.matmul(location_embedding_y ,W_l)+tf.matmul(time_embedding_y ,W_T)+tf.matmul(position_embedding_y ,W_p) #[batch_size,1,hidden_size]
+            yl_embedding=tf.matmul(user_embedding_y ,W_U)+tf.matmul(poi_embedding_y ,W_X)+tf.matmul(location_embedding_y ,W_l)+tf.matmul(time_embedding_y ,W_T)
+            l_embedding=tf.matmul(user_embedding_l ,W_U)+tf.matmul(poi_embedding_l ,W_X)+tf.matmul(location_embedding_l ,W_l)+tf.matmul(time_embedding_l ,W_T) #[batch_size,l_num_steps,hidden_size]
+            n_embedding=tf.matmul(user_embedding_n ,W_U)+tf.matmul(poi_embedding_n ,W_X)+tf.matmul(location_embedding_n ,W_l)+tf.matmul(time_embedding_n ,W_T)+tf.matmul(position_embedding_n ,W_p)
+            nl_embedding=tf.matmul(user_embedding_n ,W_U)+tf.matmul(poi_embedding_n ,W_X)+tf.matmul(location_embedding_n ,W_l)+tf.matmul(time_embedding_n ,W_T)
+            a_embedding=tf.matmul(user_embedding_a ,W_U)+tf.matmul(poi_embedding_a ,W_X)+tf.matmul(location_embedding_a ,W_l)+tf.matmul(time_embedding_a ,W_T)+tf.matmul(position_embedding_a ,W_p)
+            al_embedding=tf.matmul(user_embedding_a ,W_U)+tf.matmul(poi_embedding_a ,W_X)+tf.matmul(location_embedding_a ,W_l)+tf.matmul(time_embedding_a ,W_T)
             
             short_mask_t=tf.tile(tf.expand_dims(self.short_mask,-1),[1,1,self.hidden_size])
             long_mask_t=tf.tile(tf.expand_dims(self.long_mask,-1),[1,1,self.hidden_size])
@@ -223,7 +223,7 @@ class attentive_Model:
         labels = self.y
         batch_size = tf.shape(self.u)[0]
         pred_values = tf.expand_dims(tf.diag_part(tf.nn.embedding_lookup(prediction_transposed, labels)), -1)
-        tile_pred_values = tf.tile(pred_values, [1, self.position_size])
+        tile_pred_values = tf.tile(pred_values, [1, self.location_size])
         ranks = tf.reduce_sum(tf.cast(prediction > tile_pred_values, dtype=tf.float32), -1) + 1 #(batch)
         ndcg = 1. / (tf.log(1.0 + ranks))
         hit_at_k = tf.nn.in_top_k(prediction, labels, k=k)
@@ -254,7 +254,7 @@ class attentive_Model:
             return False
                
         
-def run_epoch(model,session,data,data_f,val_data, val_data_f, batch_size,position_Vector,user_embedding,network,summary_writer,checkpoint_dir,global_steps):
+def run_epoch(model,session,data,data_f,val_data, val_data_f, batch_size,location_Vector,user_embedding,network,summary_writer,checkpoint_dir,global_steps):
      
     fetches = [model.loss,model.train_op]
     highest_val_recall = -1.0
@@ -281,7 +281,7 @@ def run_epoch(model,session,data,data_f,val_data, val_data_f, batch_size,positio
         feed_dict[model.l_time_x]=l_time_x
         feed_dict[model.time_y]=time_y
         
-        feed_dict[model.position_vecs]=position_Vector
+        feed_dict[model.location_vecs]=location_Vector
       
         feed_dict[model.network]=network
 
@@ -294,7 +294,7 @@ def run_epoch(model,session,data,data_f,val_data, val_data_f, batch_size,positio
         
         if(global_steps%500==0):
             print("Valiate the model")
-            total_recall_5,total_ndcg_at_5,total_recall_10,total_ndcg_at_10=evaluate(model,session,val_data, val_data_f,batch_size,position_Vector,user_embedding,network)
+            total_recall_5,total_ndcg_at_5,total_recall_10,total_ndcg_at_10=evaluate(model,session,val_data, val_data_f,batch_size,location_Vector,user_embedding,network)
             if total_recall_10 >= highest_val_recall:
                 model.save(session,checkpoint_dir,global_steps)
                 highest_val_recall = total_recall_10
@@ -317,7 +317,7 @@ def run_epoch(model,session,data,data_f,val_data, val_data_f, batch_size,positio
            
     return cost,global_steps,early_stopping
     
-def evaluate(model,session,data,data_f,batch_size,position_Vector,user_embedding,network):
+def evaluate(model,session,data,data_f,batch_size,location_Vector,user_embedding,network):
     
     total_num=0
     total_recall_5=0.0
@@ -345,7 +345,7 @@ def evaluate(model,session,data,data_f,batch_size,position_Vector,user_embedding
         feed_dict[model.l_time_x]=l_time_x
         feed_dict[model.time_y]=time_y
         
-        feed_dict[model.position_vecs]=position_Vector
+        feed_dict[model.location_vecs]=location_Vector
       
         feed_dict[model.network]=network
 
@@ -396,11 +396,11 @@ if __name__=='__main__':
     network=network_trans(last_network,N)
     locations=np.loadtxt(open('data/locations.csv','rb'),delimiter=',',skiprows=0)
     user_embedding=np.loadtxt('data/user_embedding.csv',delimiter=',',skiprows=0)
-    position_embedding=np.loadtxt('data/position_embedding.csv',delimiter=',',skiprows=0)
+    location_embedding=np.loadtxt('data/location_embedding.csv',delimiter=',',skiprows=0)
     clusters=new_build_location_voc(locations)
     
     user_embedding=user_embedding.astype(np.float32)
-    position_embedding=position_embedding.astype(np.float32)
+    location_embedding=location_embedding.astype(np.float32)
     userlocation=userlocation.astype(np.float32)
     network=network.astype(np.float32)
     locations=locations.astype(np.float32)
@@ -413,10 +413,10 @@ if __name__=='__main__':
     final_train_set,final_test_set,final_val_set,final_train_set_f,final_test_set_f,final_val_set_f=build_samples(nofriend,addfriend, 0.1, 0.1, locations, 500, clusters,top_500,50,200)    
     
     config.user_size=len(user_voc.keys())
-    config.position_size=len(poi_voc.keys())
+    config.location_size=len(poi_voc.keys())
     config.batch_size=50
     eval_config.user_size=len(user_voc.keys())
-    eval_config.position_size=len(poi_voc.keys())
+    eval_config.location_size=len(poi_voc.keys())
     eval_config.batch_size=10
     
     print("begin the model training...")
@@ -436,7 +436,7 @@ if __name__=='__main__':
                
             print("the %d epoch training..."%(i+1))
             start_time=int(time.time())
-            cost,global_steps,early_stopping=run_epoch(model,session,final_train_set,final_train_set_f,final_val_set,final_val_set_f,config.batch_size,position_embedding,user_embedding,network,summary_writer,checkpoint_dir,global_steps)
+            cost,global_steps,early_stopping=run_epoch(model,session,final_train_set,final_train_set_f,final_val_set,final_val_set_f,config.batch_size,location_embedding,user_embedding,network,summary_writer,checkpoint_dir,global_steps)
             
             print("Epoch: [%2d] time: %4.4f, cost: %.8f" \
                     % (i, time.time() - start_time, cost))
@@ -447,7 +447,7 @@ if __name__=='__main__':
         
         print("begin the model testing...")
         model.load(session, checkpoint_dir)
-        total_recall_5,total_ndcg_at_5,total_recall_10,total_ndcg_at_10=evaluate(model,session,final_test_set,final_test_set_f,eval_config.batch_size,position_embedding,user_embedding,network)
+        total_recall_5,total_ndcg_at_5,total_recall_10,total_ndcg_at_10=evaluate(model,session,final_test_set,final_test_set_f,eval_config.batch_size,location_embedding,user_embedding,network)
         print("the test data total_recall_5 is %f,total_ndcg_at_5 is %f,total_recall_10 is %f,total_ndcg_at_10 is %f"%(total_recall_5,total_ndcg_at_5,total_recall_10,total_ndcg_at_10))  
         print("program end!")
     
